@@ -12,6 +12,14 @@ func moduleFuelRequired(mass int) int {
 	return (mass / 3) - 2
 }
 
+func moduleFuelRequiredRec(mass int) int {
+	fuel := (mass / 3) - 2
+	if fuel <= 0 {
+		return 0
+	}
+	return fuel + moduleFuelRequiredRec(fuel)
+}
+
 func moduleMassList(path string) []int {
 	file, err := os.Open(path)
 	if err != nil {
@@ -46,6 +54,19 @@ func sumOfFuels(masses []int) int {
 	return total
 }
 
+func sumOfFuelsRec(masses []int) int {
+	total := 0
+	for _, mass := range masses {
+		total += moduleFuelRequiredRec(mass)
+	}
+	return total
+}
+
 func main() {
+	fmt.Println("Part 1:")
 	fmt.Println(sumOfFuels(moduleMassList("input")))
+	fmt.Println()
+
+	fmt.Println("Part 2:")
+	fmt.Println(sumOfFuelsRec(moduleMassList("input")))
 }
