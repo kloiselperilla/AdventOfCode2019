@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+// FEEDBACK: Define the opCodes as constants to make them more readable.
+
 func intcodeArray(intcode string) []int {
 	var intArr = []int{}
 	for _, s := range strings.Split(strings.TrimSpace(intcode), ",") {
