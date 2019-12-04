@@ -8,6 +8,8 @@ import (
 
 const threadRange = 10000
 
+type repeatFunc func(int) bool
+
 func checkRepeating(number int) bool {
 	prev := -1
 	for number > 0 {
@@ -21,75 +23,7 @@ func checkRepeating(number int) bool {
 	return false
 }
 
-func checkMonotonicIncr(number int) bool {
-	prev := 10
-	for number > 0 {
-		curr := number % 10
-		if curr > prev {
-			return false
-		}
-		prev = curr
-		number /= 10
-	}
-	return true
-}
-
-func validPass(candidate int, digLen int, min int, max int) bool {
-	valid := true
-	// In range
-	if candidate < min || candidate > max {
-		valid = false
-	}
-	// Correct length
-	if len(strconv.Itoa(candidate)) != digLen {
-		valid = false
-	}
-	// Does not decrease
-	if !checkMonotonicIncr(candidate) {
-		valid = false
-	}
-	// Has two repeating
-	if !checkRepeating(candidate) {
-		valid = false
-	}
-	return valid
-}
-
-func checkRangeForValid(min int, max int, digLen int, passMin int, passMax int, validChan chan []int) {
-	validNums := []int{}
-	for i := min; i <= max; i++ {
-		if validPass(i, digLen, passMin, passMax) {
-			validNums = append(validNums, i)
-		}
-	}
-	validChan <- validNums
-}
-
-func findValidPasswords(digLen int, passMin int, passMax int) []int {
-	runtime.GOMAXPROCS(12)
-	validPasswords := []int{}
-
-	validChan := make(chan []int)
-	for i := passMin; i <= passMax; i += threadRange {
-		rangeMax := i + threadRange - 1
-		if rangeMax > passMax {
-			rangeMax = passMax
-		}
-		go checkRangeForValid(i, rangeMax, digLen, passMin, passMax, validChan)
-	}
-
-	for i := passMin; i <= passMax; i += threadRange {
-		validPasswords = append(validPasswords, <-validChan...)
-	}
-
-	return validPasswords
-}
-
-///////////////////
-// Part 2 Functions
-///////////////////
-
-func revisedCheckRepeating(number int) bool {
+func checkRepeatingExactlyTwo(number int) bool {
 	repeats := make(map[int]int)
 
 	prev := -1
@@ -113,7 +47,20 @@ func revisedCheckRepeating(number int) bool {
 	return false
 }
 
-func revisedValidPass(candidate int, digLen int, min int, max int) bool {
+func checkMonotonicIncr(number int) bool {
+	prev := 10
+	for number > 0 {
+		curr := number % 10
+		if curr > prev {
+			return false
+		}
+		prev = curr
+		number /= 10
+	}
+	return true
+}
+
+func validPass(candidate int, digLen int, min int, max int, fp repeatFunc) bool {
 	valid := true
 	// In range
 	if candidate < min || candidate > max {
@@ -128,23 +75,23 @@ func revisedValidPass(candidate int, digLen int, min int, max int) bool {
 		valid = false
 	}
 	// Has two repeating
-	if !revisedCheckRepeating(candidate) {
+	if !fp(candidate) {
 		valid = false
 	}
 	return valid
 }
 
-func revisedCheckRangeForValid(min int, max int, digLen int, passMin int, passMax int, validChan chan []int) {
+func checkRangeForValid(min int, max int, digLen int, passMin int, passMax int, fp repeatFunc, validChan chan []int) {
 	validNums := []int{}
 	for i := min; i <= max; i++ {
-		if revisedValidPass(i, digLen, passMin, passMax) {
+		if validPass(i, digLen, passMin, passMax, fp) {
 			validNums = append(validNums, i)
 		}
 	}
 	validChan <- validNums
 }
 
-func revisedFindValidPasswords(digLen int, passMin int, passMax int) []int {
+func findValidPasswords(digLen int, passMin int, passMax int, fp repeatFunc) []int {
 	runtime.GOMAXPROCS(12)
 	validPasswords := []int{}
 
@@ -154,7 +101,7 @@ func revisedFindValidPasswords(digLen int, passMin int, passMax int) []int {
 		if rangeMax > passMax {
 			rangeMax = passMax
 		}
-		go revisedCheckRangeForValid(i, rangeMax, digLen, passMin, passMax, validChan)
+		go checkRangeForValid(i, rangeMax, digLen, passMin, passMax, fp, validChan)
 	}
 
 	for i := passMin; i <= passMax; i += threadRange {
@@ -164,16 +111,14 @@ func revisedFindValidPasswords(digLen int, passMin int, passMax int) []int {
 	return validPasswords
 }
 
-////////////////////
-
 func main() {
 	passMin := 372304
 	passMax := 847060
 	digLen := 6
+
 	fmt.Println("Part 1:")
-	fmt.Println(len(findValidPasswords(digLen, passMin, passMax)))
+	fmt.Println(len(findValidPasswords(digLen, passMin, passMax, checkRepeating)))
 
 	fmt.Println("Part 2:")
-	fmt.Println(len(revisedFindValidPasswords(digLen, passMin, passMax)))
-	fmt.Println(revisedCheckRepeating(111123))
+	fmt.Println(len(findValidPasswords(digLen, passMin, passMax, checkRepeatingExactlyTwo)))
 }
