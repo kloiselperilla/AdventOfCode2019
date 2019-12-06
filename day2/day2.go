@@ -1,4 +1,4 @@
-package main
+package day2
 
 import (
 	//"bufio"
@@ -43,7 +43,7 @@ func mult(pos int, intcode []int) []int {
 	return intcode
 }
 
-func evaluateIntcode(intcode []int) []int {
+func EvaluateIntcode(intcode []int) []int {
 	ix := 0
 loop:
 	for ix < len(intcode) {
@@ -64,7 +64,7 @@ loop:
 	return intcode
 }
 
-func resetMemory(intcode []int, noun int, verb int) []int {
+func ResetMemory(intcode []int, noun int, verb int) []int {
 	intcode[1] = noun
 	intcode[2] = verb
 	return intcode
@@ -74,9 +74,9 @@ func findNounVerb(intcode []int, goal int) int {
 	for noun := 0; noun <= 99; noun++ {
 		for verb := 0; verb <= 99; verb++ {
 			copy(candidate, intcode)
-			candidate = resetMemory(candidate, noun, verb)
+			candidate = ResetMemory(candidate, noun, verb)
 
-			result := evaluateIntcode(candidate)
+			result := EvaluateIntcode(candidate)
 			if result[0] == goal {
 				return 100*noun + verb
 			}
@@ -91,8 +91,8 @@ func main() {
 	arr := intcodeArray(ic)
 	pt1 := make([]int, len(arr))
 	copy(pt1, arr)
-	pt1 = resetMemory(pt1, 12, 2)
-	pt1 = evaluateIntcode(pt1)
+	pt1 = ResetMemory(pt1, 12, 2)
+	pt1 = EvaluateIntcode(pt1)
 
 	fmt.Println("Part 1:")
 	fmt.Println(pt1[0])
