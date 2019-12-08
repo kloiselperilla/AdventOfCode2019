@@ -59,6 +59,8 @@ type celestialBody struct {
 // JESUS CHRIST! I was having trouble saving the 'orbits' field in the body
 // structs. BUT it turns out that you have to make the map point to pointers of
 // celestialBodies AND you ALSO have to make the receiver type a pointer
+// If you want to not use pointers you have to set the key's value again:
+// a = map[thing]; a.blah = blah; map[thing] = a
 func (body *celestialBody) calculateOrbits(orbitMap bodyMap) int {
 	if body.orbits > 0 {
 		return body.orbits
