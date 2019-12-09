@@ -2,6 +2,7 @@ package intcode
 
 import (
 	"fmt"
+	"sync"
 )
 
 const (
@@ -134,7 +135,9 @@ func jumpIfFalse(pos int, intcode []int, modes []int, ip *int) int {
 }
 
 // EvaluateIntcode evaluates and runs a given intcode
-func EvaluateIntcode(intcode []int, inChan chan int, outChan chan int, thrusterOut chan int) {
+func EvaluateIntcode(intcode []int, inChan chan int, outChan chan int, ready chan bool, wg *sync.WaitGroup) {
+	defer wg.Done()
+	readyChecked := false
 	outVal := -1
 	ip := 0
 loop:
@@ -148,16 +151,14 @@ loop:
 		case inputCode:
 			var inputVal int
 			inputVal = <-inChan
+			if !readyChecked {
+				<-ready
+				readyChecked = true
+			}
 			ipIncr = input(inputVal, ip, intcode)
 		case outputCode:
 			outVal, ipIncr = output(ip, intcode, modes)
-			select {
-			case outChan <- outVal:
-				//fmt.Println("sending")
-			default:
-				//fmt.Println("Does it get here?")
-				thrusterOut <- outVal
-			}
+			outChan <- outVal
 		case jumpIfTrueCode:
 			ipIncr = jumpIfTrue(ip, intcode, modes, &ip)
 		case jumpIfFalseCode:
@@ -173,13 +174,8 @@ loop:
 			fmt.Println("ip", ip)
 			fmt.Println("op", op)
 		}
-		//if num == 4 {
-		//fmt.Println("did a command: ", ip, inChan, outChan)
-		//}
 		ip += ipIncr
 	}
-	//fmt.Println("One done: ", inChan, outChan)
-	//return intcode, outVal
 }
 
 // ResetMemory changes the intcode at indexes 1 and 2 with the given noun and

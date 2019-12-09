@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 func intcodeArray(intcode string) []int {
@@ -30,29 +31,30 @@ func readIntcode(path string) string {
 }
 
 func calculateSignal(code []int, phase []int) int {
-	//fmt.Println(phase)
-	//totalSig := 0
-	//prevSig := 0
+	var wg sync.WaitGroup
 	sig := 0
 	var inChan [5]chan int
+	var ready [5]chan bool
 	for i := 0; i < 5; i++ {
-		inChan[i] = make(chan int)
+		inChan[i] = make(chan int, 2)
+		ready[i] = make(chan bool)
 	}
-	thrusterChan := make(chan int)
 
 	for i := 0; i < 5; i++ {
 		codeCopy := make([]int, len(code))
 		copy(codeCopy, code)
 
-		//wg.Add(1)
-		go intcode.EvaluateIntcode(codeCopy, inChan[i], inChan[(i+1)%5], thrusterChan)
+		wg.Add(1)
+		go intcode.EvaluateIntcode(codeCopy, inChan[i], inChan[(i+1)%5], ready[i], &wg)
 		inChan[i] <- phase[i]
-		if i == 0 {
-			inChan[0] <- 0
-		}
 
 	}
-	sig = <-thrusterChan
+	inChan[0] <- 0
+	for i := 0; i < 5; i++ {
+		ready[i] <- true
+	}
+	wg.Wait()
+	sig = <-inChan[0]
 
 	return sig
 }
@@ -62,15 +64,11 @@ func findMaxSignal(code []int, possiblePhases []int) int {
 
 	phaseSequence := make([]int, 5)
 	for i := 0; i < 5; i++ {
-		//fmt.Println("LOOP ONE: ", i)
-		//fmt.Println(possiblePhases)
 		possibleCopy0 := make([]int, len(possiblePhases))
 		copy(possibleCopy0, possiblePhases)
 		phaseSequence[0] = possibleCopy0[i]
 		possibleCopy0 = append(possibleCopy0[:i], possibleCopy0[i+1:]...)
-		//fmt.Println(possibleCopy0)
 		for j := 0; j < 4; j++ {
-			//fmt.Println("LOOP TWO: ", j)
 			possibleCopy1 := make([]int, len(possibleCopy0))
 			copy(possibleCopy1, possibleCopy0)
 			phaseSequence[1] = possibleCopy1[j]
@@ -87,21 +85,21 @@ func findMaxSignal(code []int, possiblePhases []int) int {
 					sig := calculateSignal(code, phaseSequence)
 					if sig > max {
 						max = sig
-						//fmt.Println("max: ", max, phaseSequence)
 					}
 				}
 			}
 		}
 	}
-	fmt.Println(max, phaseSequence)
 	return max
 }
 
 func main() {
 	originalCode := intcodeArray(readIntcode("day7/input"))
 	possiblePhasesPt1 := []int{0, 1, 2, 3, 4}
+	fmt.Println("Part 1:")
 	fmt.Println(findMaxSignal(originalCode, possiblePhasesPt1))
 	possiblePhasesPt2 := []int{5, 6, 7, 8, 9}
+	fmt.Println("Part 2:")
 	fmt.Println(findMaxSignal(originalCode, possiblePhasesPt2))
 
 }
