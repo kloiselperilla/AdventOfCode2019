@@ -43,10 +43,6 @@ func parameterIndex(mode int, value int, intcode []int) int {
 	return index
 }
 
-//func defaultModeList(modes []int, paramNum int) []int {
-//return append(modes)
-//}
-
 func add(pos int, intcode []int, modes []int) ([]int, int) {
 	operand1 := parameterIndex(modes[0], intcode[pos+1], intcode)
 	operand2 := parameterIndex(modes[1], intcode[pos+2], intcode)
@@ -138,22 +134,30 @@ func jumpIfFalse(pos int, intcode []int, modes []int, ip *int) int {
 }
 
 // EvaluateIntcode evaluates and runs a given intcode
-func EvaluateIntcode(intcode []int, inputVal int) []int {
+func EvaluateIntcode(intcode []int, inChan chan int, outChan chan int, thrusterOut chan int) {
+	outVal := -1
 	ip := 0
 loop:
 	for ip < len(intcode) {
 		var ipIncr int
-		var outVal int
 		switch op, modes := opcodeParse(intcode[ip]); op {
 		case addCode:
 			intcode, ipIncr = add(ip, intcode, modes)
 		case multCode:
 			intcode, ipIncr = mult(ip, intcode, modes)
 		case inputCode:
+			var inputVal int
+			inputVal = <-inChan
 			ipIncr = input(inputVal, ip, intcode)
 		case outputCode:
 			outVal, ipIncr = output(ip, intcode, modes)
-			fmt.Println("Output: ", outVal)
+			select {
+			case outChan <- outVal:
+				//fmt.Println("sending")
+			default:
+				//fmt.Println("Does it get here?")
+				thrusterOut <- outVal
+			}
 		case jumpIfTrueCode:
 			ipIncr = jumpIfTrue(ip, intcode, modes, &ip)
 		case jumpIfFalseCode:
@@ -169,9 +173,13 @@ loop:
 			fmt.Println("ip", ip)
 			fmt.Println("op", op)
 		}
+		//if num == 4 {
+		//fmt.Println("did a command: ", ip, inChan, outChan)
+		//}
 		ip += ipIncr
 	}
-	return intcode
+	//fmt.Println("One done: ", inChan, outChan)
+	//return intcode, outVal
 }
 
 // ResetMemory changes the intcode at indexes 1 and 2 with the given noun and
