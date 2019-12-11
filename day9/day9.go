@@ -1,19 +1,10 @@
 package main
 
 import (
+	"AdventOfCode/lib/files"
 	"AdventOfCode/lib/intcode"
 	"fmt"
-	"io/ioutil"
 )
-
-func readFile(path string) string {
-	dat, err := ioutil.ReadFile(path)
-	if err != nil {
-		panic(err)
-	}
-
-	return string(dat)
-}
 
 func runBoost(code []int, inputVal int) int {
 	var out int
@@ -29,7 +20,7 @@ func runBoost(code []int, inputVal int) int {
 }
 
 func main() {
-	code := intcode.StringToCode(readFile("day9/input"))
+	code := intcode.StringToCode(files.ReadFile("day9/input"))
 	fmt.Println("Part 1:")
 	fmt.Println(runBoost(code, 1))
 	fmt.Println()
