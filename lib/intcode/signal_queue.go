@@ -11,7 +11,7 @@ type SignalQueue struct {
 	cond  *sync.Cond
 }
 
-func newSignalQueue() SignalQueue {
+func NewSignalQueue() SignalQueue {
 	mux := sync.Mutex{}
 	q := SignalQueue{ready: make(chan bool), cond: sync.NewCond(&mux)}
 	return q

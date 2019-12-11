@@ -8,6 +8,7 @@ import (
 // Engine encapsulates an intcode consumer
 type Engine struct {
 	Ip       int
+	RelBase  int
 	Code     []int
 	Inputs   *SignalQueue
 	Outputs  *SignalQueue
@@ -21,7 +22,7 @@ func NewEngine(code []int) Engine {
 	codeCopy := make([]int, len(code))
 	copy(codeCopy, code)
 
-	q := newSignalQueue()
+	q := NewSignalQueue()
 	opMap := map[int]func(*Engine) int{
 		1: add,
 		2: mult,
@@ -31,6 +32,7 @@ func NewEngine(code []int) Engine {
 		6: jumpIfFalse,
 		7: lessThan,
 		8: equals,
+		9: relBaseOffset,
 	}
 	e := Engine{Code: codeCopy, Inputs: &q, OpMap: opMap}
 	return e
@@ -41,9 +43,7 @@ func (e *Engine) ConnectOutput(outputs *SignalQueue) {
 	e.Outputs = outputs
 }
 
-// EvaluateIntcode evaluates and runs a given intcode
-func (e *Engine) EvaluateIntcode(wg *sync.WaitGroup) {
-	defer wg.Done()
+func (e *Engine) runOps() {
 	for e.Ip < len(e.Code) {
 		var ipIncr int
 		var op int
@@ -61,4 +61,15 @@ func (e *Engine) EvaluateIntcode(wg *sync.WaitGroup) {
 		}
 		e.Ip += ipIncr
 	}
+}
+
+// ConcEvaluateIntcode evaluates and runs a given intcode concurrently
+func (e *Engine) ConcEvaluateIntcode(wg *sync.WaitGroup) {
+	defer wg.Done()
+	e.runOps()
+}
+
+// EvaluateIntcode evaluates and runs a given intcode
+func (e *Engine) EvaluateIntcode() {
+	e.runOps()
 }

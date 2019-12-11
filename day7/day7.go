@@ -30,7 +30,7 @@ func calculateSignal(code []int, phase []int) int {
 	}
 	for i := 0; i < 5; i++ {
 		wg.Add(1)
-		go ampCircuit[i].EvaluateIntcode(&wg)
+		go ampCircuit[i].ConcEvaluateIntcode(&wg)
 
 	}
 	wg.Wait()

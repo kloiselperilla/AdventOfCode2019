@@ -6,18 +6,9 @@ import (
 )
 
 const (
-	addCode         = 1
-	multCode        = 2
-	inputCode       = 3
-	outputCode      = 4
-	jumpIfTrueCode  = 5
-	jumpIfFalseCode = 6
-	lessThanCode    = 7
-	equalsCode      = 8
-	stopCode        = 99
-
 	positionModeCode  = 0
 	immediateModeCode = 1
+	relativeModeCode  = 2
 )
 
 func opcodeParse(opVal int) (int, []int) {
@@ -33,14 +24,16 @@ func opcodeParse(opVal int) (int, []int) {
 	return opcode, modes[:]
 }
 
-func parameterIndex(eng *Engine, paramNum int) int {
-	var index int
+func parameterIndex(eng *Engine, paramNum int) *int {
+	var index *int
 	value := eng.Code[eng.Ip+paramNum+1]
 	switch eng.Modes[paramNum] {
 	case positionModeCode:
-		index = eng.Code[value]
+		index = &eng.Code[value]
 	case immediateModeCode:
-		index = value
+		index = &value
+	case relativeModeCode:
+		index = &eng.Code[eng.RelBase+value]
 	}
 	return index
 }
@@ -57,11 +50,16 @@ func ResetMemory(intcode []int, noun int, verb int) []int {
 func StringToCode(intcode string) []int {
 	var intArr = []int{}
 	for _, s := range strings.Split(strings.TrimSpace(intcode), ",") {
+		if s == "-" {
+			break
+		}
 		val, err := strconv.Atoi(s)
 		if err != nil {
 			panic(err)
 		}
 		intArr = append(intArr, val)
 	}
-	return intArr
+	intArrCap := make([]int, len(intArr)*20)
+	copy(intArrCap, intArr)
+	return intArrCap
 }
