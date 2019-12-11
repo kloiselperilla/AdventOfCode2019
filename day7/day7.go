@@ -48,9 +48,8 @@ func calculateSignal(code []int, phase []int) int {
 
 	}
 	wg.Wait()
-	sig := ampCircuit[4].Outputs.Dequeue()
 
-	return sig
+	return ampCircuit[4].Outputs.Dequeue()
 }
 
 func findMaxSignal(code []int, possiblePhases []int) int {
