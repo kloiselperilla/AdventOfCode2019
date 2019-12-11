@@ -1,11 +1,9 @@
 package main
 
 import (
+	"AdventOfCode/lib/files"
 	"AdventOfCode/lib/intcode"
-	"bufio"
 	"fmt"
-	"log"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -26,22 +24,12 @@ func intcodeArray(intcode string) []int {
 }
 
 func readIntcodes(path string) [][]int {
-	file, err := os.Open(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
+	lines := files.ReadLines(path)
 	icodes := [][]int{}
-	for scanner.Scan() {
+	for _, line := range lines {
 		// string to int
-		icode := intcodeArray(scanner.Text())
+		icode := intcodeArray(line)
 		icodes = append(icodes, icode)
-	}
-
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
 	}
 
 	return icodes

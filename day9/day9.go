@@ -20,7 +20,7 @@ func runBoost(code []int, inputVal int) int {
 }
 
 func main() {
-	code := intcode.StringToCode(files.ReadFile("day9/input"))
+	code := intcode.StringToCode(files.Read("day9/input"))
 	fmt.Println("Part 1:")
 	fmt.Println(runBoost(code, 1))
 	fmt.Println()
