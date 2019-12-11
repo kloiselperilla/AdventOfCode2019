@@ -4,24 +4,10 @@ import (
 	"AdventOfCode/lib/intcode"
 	"fmt"
 	"io/ioutil"
-	"strconv"
-	"strings"
 	"sync"
 )
 
-func intcodeArray(intcode string) []int {
-	var intArr = []int{}
-	for _, s := range strings.Split(strings.TrimSpace(intcode), ",") {
-		val, err := strconv.Atoi(s)
-		if err != nil {
-			panic(err)
-		}
-		intArr = append(intArr, val)
-	}
-	return intArr
-}
-
-func readIntcode(path string) string {
+func readFile(path string) string {
 	dat, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(err)
@@ -87,10 +73,12 @@ func findMaxSignal(code []int, possiblePhases []int) int {
 }
 
 func main() {
-	originalCode := intcodeArray(readIntcode("day7/input"))
+	originalCode := intcode.StringToCode(readFile("day7/input"))
 	possiblePhasesPt1 := []int{0, 1, 2, 3, 4}
 	fmt.Println("Part 1:")
 	fmt.Println(findMaxSignal(originalCode, possiblePhasesPt1))
+	fmt.Println()
+
 	possiblePhasesPt2 := []int{5, 6, 7, 8, 9}
 	fmt.Println("Part 2:")
 	fmt.Println(findMaxSignal(originalCode, possiblePhasesPt2))
