@@ -80,11 +80,50 @@ func findFewestZero(layers []layer) layer {
 	return minLayer
 }
 
+func findTopPixel(layers []layer, y int, x int) int {
+	top := 2
+	for i := 0; i < len(layers); i++ {
+		if layers[i][y][x] != 2 {
+			top = layers[i][y][x]
+			break
+		}
+	}
+	return top
+}
+
+func findTopImage(layers []layer) layer {
+	topArr := []int{}
+	height := len(layers[0])
+	width := len(layers[0][0])
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			topArr = append(topArr, findTopPixel(layers, y, x))
+		}
+	}
+	return buildLayer(width, height, topArr)
+}
+
+func intArrToStr(arr []int) string {
+	b := make([]byte, 0, len(arr))
+	for _, n := range arr {
+		b = strconv.AppendInt(b, int64(n), 10)
+	}
+	return string(b)
+}
+
 func main() {
 	arr := stringToSlice(readFile("day8/input"))
 	layers := imageLayers(25, 6, arr)
 	minLayer := findFewestZero(layers)
 	fmt.Println("Part 1:")
 	fmt.Println(numDigitsInLayer(minLayer, 1) * numDigitsInLayer(minLayer, 2))
+	fmt.Println()
+
+	fmt.Println("Part 2:")
+	topImg := findTopImage(layers)
+	height := len(layers[0])
+	for y := 0; y < height; y++ {
+		fmt.Println(intArrToStr(topImg[y]))
+	}
 
 }
