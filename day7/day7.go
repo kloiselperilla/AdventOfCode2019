@@ -32,29 +32,23 @@ func readIntcode(path string) string {
 
 func calculateSignal(code []int, phase []int) int {
 	var wg sync.WaitGroup
-	sig := 0
-	var inChan [5]chan int
-	var ready [5]chan bool
+	var ampCircuit [5]intcode.Engine
 	for i := 0; i < 5; i++ {
-		inChan[i] = make(chan int, 2)
-		ready[i] = make(chan bool)
+		ampCircuit[i] = intcode.NewEngine(code)
+		ampCircuit[i].Inputs.Enqueue(phase[i])
 	}
+	ampCircuit[0].Inputs.Enqueue(0)
 
 	for i := 0; i < 5; i++ {
-		codeCopy := make([]int, len(code))
-		copy(codeCopy, code)
-
+		ampCircuit[i].ConnectOutput(ampCircuit[(i+1)%5].Inputs)
+	}
+	for i := 0; i < 5; i++ {
 		wg.Add(1)
-		go intcode.EvaluateIntcode(codeCopy, inChan[i], inChan[(i+1)%5], ready[i], &wg)
-		inChan[i] <- phase[i]
+		go ampCircuit[i].EvaluateIntcode(&wg)
 
-	}
-	inChan[0] <- 0
-	for i := 0; i < 5; i++ {
-		ready[i] <- true
 	}
 	wg.Wait()
-	sig = <-inChan[0]
+	sig := ampCircuit[4].Outputs.Dequeue()
 
 	return sig
 }

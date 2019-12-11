@@ -5,6 +5,43 @@ import (
 	"sync"
 )
 
+// SignalQueue gives an implementation of a connection between engines
+type SignalQueue struct {
+	Queue []int
+	ready chan bool
+	mux   *sync.Mutex
+	cond  *sync.Cond
+}
+
+func newSignalQueue() SignalQueue {
+	mux := sync.Mutex{}
+	q := SignalQueue{ready: make(chan bool), mux: &mux, cond: sync.NewCond(&mux)}
+	return q
+}
+
+// Enqueue adds to end of queue
+func (q *SignalQueue) Enqueue(val int) {
+	q.cond.L.Lock()
+	q.Queue = append(q.Queue, val)
+	q.cond.Broadcast()
+	q.cond.L.Unlock()
+}
+
+// Dequeue removes from beginning of queue
+func (q *SignalQueue) Dequeue() int {
+	q.cond.L.Lock()
+	// Wait for not empty
+	for len(q.Queue) == 0 {
+		q.cond.Wait()
+	}
+	retval := q.Queue[0]
+	q.Queue[0] = 0
+	q.Queue = q.Queue[1:]
+	q.cond.L.Unlock()
+
+	return retval
+}
+
 const (
 	addCode         = 1
 	multCode        = 2
@@ -19,6 +56,28 @@ const (
 	positionModeCode  = 0
 	immediateModeCode = 1
 )
+
+// Engine encapsulates an intcode consumer
+type Engine struct {
+	code    []int
+	Inputs  *SignalQueue
+	Outputs *SignalQueue
+}
+
+// NewEngine makes a new Engine with a copy of an intcode
+func NewEngine(code []int) Engine {
+	codeCopy := make([]int, len(code))
+	copy(codeCopy, code)
+
+	q := newSignalQueue()
+	e := Engine{code: codeCopy, Inputs: &q}
+	return e
+}
+
+// ConnectOutput sets an output queue
+func (e *Engine) ConnectOutput(outputs *SignalQueue) {
+	e.Outputs = outputs
+}
 
 func opcodeParse(opVal int) (int, []int) {
 	opcode := opVal % 100
@@ -108,7 +167,6 @@ func input(input int, pos int, intcode []int) int {
 
 func output(pos int, intcode []int, modes []int) (int, int) {
 	outVal := parameterIndex(modes[0], intcode[pos+1], intcode)
-	//fmt.Println("Output: ", outVal)
 	return outVal, 2
 }
 
@@ -135,38 +193,32 @@ func jumpIfFalse(pos int, intcode []int, modes []int, ip *int) int {
 }
 
 // EvaluateIntcode evaluates and runs a given intcode
-func EvaluateIntcode(intcode []int, inChan chan int, outChan chan int, ready chan bool, wg *sync.WaitGroup) {
+func (e *Engine) EvaluateIntcode(wg *sync.WaitGroup) {
 	defer wg.Done()
-	readyChecked := false
 	outVal := -1
 	ip := 0
 loop:
-	for ip < len(intcode) {
+	for ip < len(e.code) {
 		var ipIncr int
-		switch op, modes := opcodeParse(intcode[ip]); op {
+		switch op, modes := opcodeParse(e.code[ip]); op {
 		case addCode:
-			intcode, ipIncr = add(ip, intcode, modes)
+			e.code, ipIncr = add(ip, e.code, modes)
 		case multCode:
-			intcode, ipIncr = mult(ip, intcode, modes)
+			e.code, ipIncr = mult(ip, e.code, modes)
 		case inputCode:
-			var inputVal int
-			inputVal = <-inChan
-			if !readyChecked {
-				<-ready
-				readyChecked = true
-			}
-			ipIncr = input(inputVal, ip, intcode)
+			inputVal := e.Inputs.Dequeue()
+			ipIncr = input(inputVal, ip, e.code)
 		case outputCode:
-			outVal, ipIncr = output(ip, intcode, modes)
-			outChan <- outVal
+			outVal, ipIncr = output(ip, e.code, modes)
+			e.Outputs.Enqueue(outVal)
 		case jumpIfTrueCode:
-			ipIncr = jumpIfTrue(ip, intcode, modes, &ip)
+			ipIncr = jumpIfTrue(ip, e.code, modes, &ip)
 		case jumpIfFalseCode:
-			ipIncr = jumpIfFalse(ip, intcode, modes, &ip)
+			ipIncr = jumpIfFalse(ip, e.code, modes, &ip)
 		case lessThanCode:
-			intcode, ipIncr = lessThan(ip, intcode, modes)
+			e.code, ipIncr = lessThan(ip, e.code, modes)
 		case equalsCode:
-			intcode, ipIncr = equals(ip, intcode, modes)
+			e.code, ipIncr = equals(ip, e.code, modes)
 		case stopCode:
 			break loop
 		default:
