@@ -1,41 +1,46 @@
 package intcode
 
 import (
+	//"fmt"
 	"sync"
 )
 
 // SignalQueue gives an implementation of a connection between engines
 type SignalQueue struct {
 	Queue []int
-	ready chan bool
-	cond  *sync.Cond
+	Cond  *sync.Cond
 }
 
 func NewSignalQueue() SignalQueue {
 	mux := sync.Mutex{}
-	q := SignalQueue{ready: make(chan bool), cond: sync.NewCond(&mux)}
+	q := SignalQueue{Cond: sync.NewCond(&mux)}
 	return q
 }
 
 // Enqueue adds to end of queue
 func (q *SignalQueue) Enqueue(val int) {
-	q.cond.L.Lock()
+	q.Cond.L.Lock()
 	q.Queue = append(q.Queue, val)
-	q.cond.Broadcast()
-	q.cond.L.Unlock()
+	q.Cond.Broadcast()
+	q.Cond.L.Unlock()
 }
 
 // Dequeue removes from beginning of queue
 func (q *SignalQueue) Dequeue() int {
-	q.cond.L.Lock()
+	q.Cond.L.Lock()
 	// Wait for not empty
 	for len(q.Queue) == 0 {
-		q.cond.Wait()
+		q.Cond.Wait()
 	}
 	retval := q.Queue[0]
 	q.Queue[0] = 0
 	q.Queue = q.Queue[1:]
-	q.cond.L.Unlock()
+	q.Cond.L.Unlock()
 
 	return retval
+}
+
+// IsEmpty checks if empty
+func (q *SignalQueue) IsEmpty() bool {
+	return len(q.Queue) == 0
 }

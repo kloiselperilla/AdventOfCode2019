@@ -15,7 +15,7 @@ func opcodeParse(opVal int) (int, []int) {
 	opcode := opVal % 100
 	opVal /= 100
 
-	modes := [5]int{}
+	modes := make([]int, 5)
 	for i := 0; opVal > 0; i++ {
 		modes[i] = opVal % 10
 		opVal /= 10
